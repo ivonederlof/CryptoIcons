@@ -1,2 +1,2 @@
 # CryptoIcons
-All (most) icons cryptocurrencies
+Cryptocurrency icons scraped from https://coinranking.com/. 
