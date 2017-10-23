@@ -1,12 +1,9 @@
 from bs4 import BeautifulSoup
-import requests, urllib
+import requests, urllib2, cookielib
 from time import sleep
-
- 
 from selenium import webdriver  
 from selenium.webdriver.common.keys import Keys  
 from selenium.webdriver.chrome.options import Options
-
 
 class Coin(object):
 
@@ -23,10 +20,9 @@ class CoinRank(object):
 
     def __init__(self):
         self._get_total_pages()
+        print "start"
 
     def getAllImages(self):
-        # self._pageControl()
-        # self._getUrls()
 
         while self.page <= self.total_pages: 
             print self.page
@@ -37,24 +33,9 @@ class CoinRank(object):
         req = requests.get(self.url)
         soup = BeautifulSoup(req.content,'lxml')
         pages = soup.find('span',{'class':'pagination__info'})
-    
         self.total_pages = int(pages.find_all('b')[1].get_text(strip=True))
         print '> total pages:', self.total_pages
         
-    def _pageControl(self):
-        print '> start preparing pages'
-        driver = webdriver.Chrome()
-        driver.get(self.url)
-        button = driver.find_element_by_xpath('/html/body/div[2]/div/div[3]/div/div/button')
-        while True: 
-            if button: 
-                print 'There is a button'
-                button.click()
-                print 'nextPage'
-                sleep(1)
-        print "> waiting for a minute, so it can load ..."
-        sleep(60)
-
 
     def _getCoins(self, page):
         print "> getting page", page
@@ -65,7 +46,7 @@ class CoinRank(object):
         a = soup.find_all('a',{'class','coin-list__body__row'})
         for item in a:
             icon = item.find('span',{'class':'coin-list__body__row__cryptocurrency__prepend__icon'})
-            name = item.find('span',{'class':'coin-name'}).get_text(strip=True).replace(' ','_')
+            name = item.find('span',{'class':'coin-name'}).get_text(strip=True).replace(' ','-')
             if icon:
                 img = icon.img   
                 if img:
@@ -77,10 +58,30 @@ class CoinRank(object):
 
     def saveAllImages(self):
         print "> saving images"
+ 
         for coin in self.coins:
             if coin.image and coin.name:
-                urllib.urlretrieve(coin.image,'./../images/cryptocoins/'+coin.name.lower()+'.svg')  
-                sleep(0.5)
+                print '> request:', coin.image
+
+                headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}
+                req = requests.get(coin.image, headers=headers)
+                content = req.headers['content-type']
+             
+                if req.status_code == 200:
+                    if content:
+                        if content == 'image/svg+xml':
+                            with open('./../images/cryptocoins/'+coin.name.lower()+'.svg', 'wb') as f:
+                                f.write(req.content)
+
+                        elif content == 'image/jpg':
+                            with open('./../images/cryptocoins/'+coin.name.lower()+'.jpg', 'wb') as f:
+                                f.write(req.content)
+
+                        elif content == 'image/png':
+                            with open('./../images/cryptocoins/'+coin.name.lower()+'.png', 'wb') as f:
+                                f.write(req.content)
+                                
+                sleep(10)
 
 coinRank = CoinRank()
 coinRank.getAllImages()
